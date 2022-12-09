@@ -1,3 +1,30 @@
+# Cross Realm KDC Trust
+
+## How to use this branch.
+1. Clone this repo twice in two dirs: `alluxio-secure-hadoop` and `alluxio-secure-hadoop-realm2`
+2. In the `alluxio-secure-hadoop` dir, check out the `main` branch, and start the cluster.
+3. In the `alluxio-secure-hadoop-realm2` dir, check out the `cross-realm-trust` branch, and then start the cluster.
+
+## How does this branch work with the main branch.
+### Network
+* The `docker-compose.yml` in the main branch will create a "bridge" network.
+* The `docker-compose.yml` in this branch use the network created by the main branch as an external network.
+* Two clusters (one created from `alluxio-secure-hadoop` and the other from `alluxio-secure-hadoop-realm2`) sit in the same network, so containers can communicate with each other through the network.
+
+
+## Problems and Solutions
+### Kerberos
+> kadmin.local: Can not fetch master key (error: No such file or directory). while initializing kadmin.local interface
+* Occurrence: it happens when the KDC container starts up.
+* Cause: The `kdc_storage` volume persists KDC database. If the KDC config is changed and KDC container is restarted without delete the `kdc_storage` volume, conflicts can happen and result in such issue.
+* Solution: Delete the `kdc_storage` volume by executing ``
+* Verifcation: go to the `kdc-realm2` container and execute `kadmin.local` and then `list_principals` cmds.
+
+
+---
+---
+**Content below above divider is the copy of the main branch. For this branch, pls checkout above instructions.**
+
 # alluxio-secure-hadoop
 Test Alluxio Enterprise with Apache Hadoop 2.10.1 in secure mode
 

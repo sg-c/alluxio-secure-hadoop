@@ -143,21 +143,21 @@ services:
     depends_on:
       - kdc-realm2
     hostname: alluxio-master
-    domainname: docker.com
+    domainname: ${DOMAIN}
     container_name: alluxio-master-realm2
     tty: true
     extra_hosts:
-      - "kdc.kerberos.com kdc: 172.23.0.2"
-      - "hadoop-namenode.docker.com hadoop-namenode: 172.23.0.4"
-      - "hadoop-datanode1.docker.com hadoop-datanode1: 172.23.0.5"
-      - "alluxio-worker1.docker.com alluxio-worker1: 172.23.0.7"
-      - "ranger-admin.docker.com ranger-admin: 172.23.0.16"
+      - "kdc.${DOMAIN} kdc: 172.23.0.2"
+      - "hadoop-namenode.${DOMAIN} hadoop-namenode: 172.23.0.4"
+      - "hadoop-datanode1.${DOMAIN} hadoop-datanode1: 172.23.0.5"
+      - "alluxio-worker1.${DOMAIN} alluxio-worker1: 172.23.0.7"
+      - "ranger-admin.${DOMAIN} ranger-admin: 172.23.0.16"
     environment:
-      KRB_REALM: EXAMPLE.COM
-      DOMAIN_REALM: kdc.kerberos.com
-      THIS_FQDN: alluxio-master.docker.com
-      HADOOP_NAMENODE_FQDN: hadoop-namenode.docker.com
-      HADOOP_NAMENODE_URL: hadoop-namenode.docker.com:9000
+      KRB_REALM: ${REALM}
+      DOMAIN_REALM: ${DOMAIN_REALM}
+      THIS_FQDN: alluxio-master.${DOMAIN}
+      HADOOP_NAMENODE_FQDN: hadoop-namenode.${DOMAIN}
+      HADOOP_NAMENODE_URL: hadoop-namenode.${DOMAIN}:9000
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config_files:/tmp/config_files
@@ -187,22 +187,22 @@ services:
       - kdc-realm2
       - alluxio-master-realm2
     hostname: alluxio-worker1
-    domainname: docker.com
+    domainname: ${DOMAIN}
     container_name: alluxio-worker1-realm2
     tty: true
     extra_hosts:
-      - "kdc.kerberos.com kdc: 172.23.0.2"
-      - "hadoop-namenode.docker.com hadoop-namenode: 172.23.0.4"
-      - "hadoop-datanode1.docker.com hadoop-datanode1: 172.23.0.5"
-      - "alluxio-master.docker.com alluxio-master: 172.23.0.6"
-      - "ranger-admin.docker.com ranger-admin: 172.23.0.16"
+      - "kdc.${DOMAIN} kdc: 172.23.0.2"
+      - "hadoop-namenode.${DOMAIN} hadoop-namenode: 172.23.0.4"
+      - "hadoop-datanode1.${DOMAIN} hadoop-datanode1: 172.23.0.5"
+      - "alluxio-master.${DOMAIN} alluxio-master: 172.23.0.6"
+      - "ranger-admin.${DOMAIN} ranger-admin: 172.23.0.16"
     environment:
-      KRB_REALM: EXAMPLE.COM
-      DOMAIN_REALM: kdc.kerberos.com
-      THIS_FQDN: alluxio-worker1.docker.com
-      ALLUXIO_MASTER_FQDN: alluxio-master.docker.com
-      HADOOP_NAMENODE_FQDN: hadoop-namenode.docker.com
-      HADOOP_NAMENODE_URL: hadoop-namenode.docker.com:9000
+      KRB_REALM: ${REALM}
+      DOMAIN_REALM: ${DOMAIN_REALM}
+      THIS_FQDN: alluxio-worker1.${DOMAIN}
+      ALLUXIO_MASTER_FQDN: alluxio-master.${DOMAIN}
+      HADOOP_NAMENODE_FQDN: hadoop-namenode.${DOMAIN}
+      HADOOP_NAMENODE_URL: hadoop-namenode.${DOMAIN}:9000
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config_files:/tmp/config_files
