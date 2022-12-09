@@ -48,22 +48,22 @@ services:
       - kdc-realm2
       - mysql-realm2
     hostname: hadoop-namenode
-    domainname: docker.com
+    domainname: ${DOMAIN}
     container_name: hadoop-namenode-realm2
     tty: true
     extra_hosts:
-      - "kdc.kerberos.com kdc:172.23.0.2"
-      - "mysql.docker.com mysql:172.23.0.3"
-      - "hadoop-datanode1.docker.com hadoop-datanode1: 172.23.0.5"
-      - "alluxio-master.docker.com alluxio-master: 172.23.0.6"
-      - "alluxio-worker1.docker.com alluxio-worker1: 172.23.0.7"
+      - "kdc.${DOMAIN} kdc:172.23.0.2"
+      - "mysql.${DOMAIN} mysql:172.23.0.3"
+      - "hadoop-datanode1.${DOMAIN} hadoop-datanode1: 172.23.0.5"
+      - "alluxio-master.${DOMAIN} alluxio-master: 172.23.0.6"
+      - "alluxio-worker1.${DOMAIN} alluxio-worker1: 172.23.0.7"
     environment:
-      KRB_REALM: EXAMPLE.COM
-      DOMAIN_REALM: kdc.kerberos.com
-      THIS_FQDN: hadoop-namenode.docker.com
-      HADOOP_NAMENODE_FQDN: hadoop-namenode.docker.com
-      HADOOP_DATANODE1_FQDN: hadoop-datanode1.docker.com
-      ALLUXIO_MASTER_FQDN: alluxio-master.docker.com
+      KRB_REALM: ${REALM}
+      DOMAIN_REALM: ${DOMAIN_REALM}
+      THIS_FQDN: hadoop-namenode.${DOMAIN}
+      HADOOP_NAMENODE_FQDN: hadoop-namenode.${DOMAIN}
+      HADOOP_DATANODE1_FQDN: hadoop-datanode1.${DOMAIN}
+      ALLUXIO_MASTER_FQDN: alluxio-master.${DOMAIN}
     volumes:
       - ./config_files:/tmp/config_files
       - /etc/localtime:/etc/localtime:ro
@@ -100,23 +100,24 @@ services:
     depends_on: 
       - kdc-realm2
       - mysql-realm2
+      - hadoop-namenode-realm2
     hostname: hadoop-datanode1
-    domainname: docker.com
+    domainname: ${DOMAIN}
     container_name: hadoop-datanode1-realm2
     tty: true
     extra_hosts:
-      - "kdc.kerberos.com kdc:172.23.0.2"
-      - "mysql.docker.com mysql:172.23.0.3"
-      - "hadoop-namenode.docker.com hadoop-namenode: 172.23.0.4"
-      - "alluxio-master.docker.com alluxio-master: 172.23.0.6"
-      - "alluxio-worker1.docker.com alluxio-worker1: 172.23.0.7"
+      - "kdc.${DOMAIN} kdc:172.23.0.2"
+      - "mysql.${DOMAIN} mysql:172.23.0.3"
+      - "hadoop-namenode.${DOMAIN} hadoop-namenode: 172.23.0.4"
+      - "alluxio-master.${DOMAIN} alluxio-master: 172.23.0.6"
+      - "alluxio-worker1.${DOMAIN} alluxio-worker1: 172.23.0.7"
     environment:
-      KRB_REALM: EXAMPLE.COM
-      DOMAIN_REALM: kdc.kerberos.com
-      THIS_FQDN: hadoop-datanode1.docker.com
-      HADOOP_NAMENODE_FQDN: hadoop-namenode.docker.com
-      HADOOP_DATANODE1_FQDN: hadoop-datanode1.docker.com
-      ALLUXIO_MASTER_FQDN: alluxio-master.docker.com
+      KRB_REALM: ${REALM}
+      DOMAIN_REALM: ${DOMAIN_REALM}
+      THIS_FQDN: hadoop-datanode1.${DOMAIN}
+      HADOOP_NAMENODE_FQDN: hadoop-namenode.${DOMAIN}
+      HADOOP_DATANODE1_FQDN: hadoop-datanode1.${DOMAIN}
+      ALLUXIO_MASTER_FQDN: alluxio-master.${DOMAIN}
     volumes:
       - ./config_files:/tmp/config_files
       - /etc/localtime:/etc/localtime:ro
