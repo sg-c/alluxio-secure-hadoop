@@ -31,7 +31,7 @@ services:
     image: mysql:5.7
     restart: always
     hostname: mysql
-    domainname: docker.com
+    domainname: ${DOMAIN}
     container_name: mysql-realm2
     environment:
       MYSQL_ROOT_PASSWORD: changeme123
