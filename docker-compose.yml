@@ -11,11 +11,12 @@ services:
       custom:
         ipv4_address: 172.23.0.2
     image: sequenceiq/kerberos
-    hostname: kdc.kerberos.com
+    hostname: kdc
+    domainname: ${DOMAIN}
     container_name: kdc-realm2
     environment:
-      REALM: EXAMPLE.COM
-      DOMAIN_REALM: kdc.kerberos.com
+      REALM: ${REALM}
+      DOMAIN_REALM: ${DOMAIN_REALM}
     volumes:
       - "./config_files/kdc/krb5.conf:/etc/krb5.conf"
       - "/dev/urandom:/dev/random"
