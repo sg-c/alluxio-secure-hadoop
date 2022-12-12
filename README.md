@@ -95,6 +95,12 @@ Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 
 * Solution: Delete the `kdc_storage` volume by executing ``
 * Verifcation: go to the `kdc-realm2` container and execute `kadmin.local` and then `list_principals` cmds.
 
+> failure to login: for principal: alluxio@REALM2.COM from keytab /etc/security/keytabs/alluxio.headless.keytab javax.security.auth.login.LoginException: Checksum failed
+* Occurrence: it happens when the Alluxio master starts
+* Cause: the keytab file content is invalid. This is because the Docker runtime got started, but the keytab which is saved in the `keystore` volume persist from the previous session.
+* Solution: remove all the volumes created by docker containers by executing `docker volume ls -q | grep alluxio | xargs -I {} docker volume rm {}`; then, restart all the containers
+* Verification: alluxio service can start successfully
+
 
 ---
 ---
