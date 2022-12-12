@@ -73,32 +73,6 @@ alluxio fs mount \
 --option alluxio.underfs.hdfs.configuration=/opt/hadoop-realm2/core-site.xml:/opt/hadoop-realm2/hdfs-site.xml \
 /hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
 ```
-Following error occurs in the stdout:
-```
-DestHost:destPort hadoop-namenode.docker.com:9000 , LocalHost:localPort alluxio-master.realm2.com/172.23.0.6:0. Failed on local exception: java.io.IOException: org.apache.hadoop.security.AccessControlException: Client cannot authenticate via:[TOKEN, KERBEROS]
-root $ klist
-Ticket cache: FILE:/tmp/krb5cc_0
-Default principal: alluxio@REALM2.COM
-
-Valid starting       Expires              Service principal
-12/09/2022 08:38:49  12/10/2022 08:38:49  krbtgt/REALM2.COM@REALM2.COM
-	renew until 12/09/2022 08:38:49
-```
-Run following command to mount by principal `alluxio@EXAMPLE.COM`:
-```
-alluxio fs mount \
---option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@EXAMPLE.COM \
---option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/etc/security/keytabs/alluxio-realm1.headless.keytab \
---option alluxio.master.mount.table.root.option.alluxio.security.underfs.hdfs.impersonation.enabled=true \
-/hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
-```
-The command got stuck without and progression. This is because the failure of authentication on KDC at REALM1, which can be found in the `/var/log/kerberos/krb5kdc.log` of KDC in REALM1.
-```
-Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/REALM2.COM@EXAMPLE.COM, Server not found in Kerberos database
-Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/REALM2.COM@EXAMPLE.COM, Server not found in Kerberos database
-Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/COM@EXAMPLE.COM, Server not found in Kerberos database
-Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/COM@EXAMPLE.COM, Server not found in Kerberos database
-```
 
 ## Problems and Solutions
 ### Kerberos
@@ -140,8 +114,8 @@ Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 
 > ...
 > , Error=java.io.IOException: DestHost:destPort hadoop-namenode.docker.com:9000 , LocalHost:localPort alluxio-master.realm2.com/172.23.0.6:0. Failed on local exception: java.io.IOException: Couldn't set up IO streams: java.lang.IllegalArgumentException: Server has invalid Kerberos principal: nn/hadoop-namenode.docker.com@REALM2.COM, expecting: nn/hadoop-namenode.docker.com@EXAMPLE.COM
 * Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
-* Cause: ???
-* Solution: ???
+* Cause: This appears to be FQDN issue. 
+* Solution: Update the `/etc/krb5.conf` and add `.docker.com = EXAMPLE.COM` and `docker.com = EXAMPLE.COM` to the `[domain_realm]` section, and then restart the alluxio service.
 * Verification: run `alluxio mount` and such error doesn't come out
 
 ---
