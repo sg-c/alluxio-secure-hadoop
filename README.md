@@ -5,12 +5,87 @@
 2. In the `alluxio-secure-hadoop` dir, check out the `main` branch, and start the cluster.
 3. In the `alluxio-secure-hadoop-realm2` dir, check out the `cross-realm-trust` branch, and then start the cluster.
 
+
 ## How does this branch work with the main branch.
 ### Network
 * The `docker-compose.yml` in the main branch will create a "bridge" network.
 * The `docker-compose.yml` in this branch use the network created by the main branch as an external network.
 * Two clusters (one created from `alluxio-secure-hadoop` and the other from `alluxio-secure-hadoop-realm2`) sit in the same network, so containers can communicate with each other through the network.
 
+
+## Access REALM1 (EXAMPLE.COM) from Alluxio container in REALM2
+### Update /etc/hosts
+Add `172.22.0.2 kdc.kerberos.com` to the file. This sets the IP and the hostname of the KDC in REALM1.
+### Update /etc/krb5.conf
+```
+ [realms]
+  REALM2.COM = {
+   kdc = kdc.realm2.com
+   admin_server = kdc.realm2.com
+  }
++ EXAMPLE.COM = {
++  kdc = kdc.kerberos.com
++  admin_server = kdc.kerberos.com
++ }
+ [domain_realm]
+  .kdc.realm2.com = REALM2.COM
+  kdc.realm2.com = REALM2.COM
++ .kdc.kerberos.com = EXAMPLE.COM
++ kdc.kerberos.com = EXAMPLE.COM
+```
+### Verify the setup
+Execute `"kadmin -p admin/admin@EXAMPLE.COM -w admin -r EXAMPLE.COM"` to run `kadmin` connecting to KDC of `EXAMPLE.COM`. In the `kadmin` REPL, exeute `list_principals` command to show all the existing principals. The output principals all have `EXAMPLE.COM` realm.
+
+
+## Mount HDFS from REALM1 (EXAMPLE.COM) to Alluxio in REALM2
+### Update /etc/hosts
+Add following lines to the file. This sets the IP and the hostnames of the NN and DN in REALM1.
+```
+172.22.0.4 hadoop-namenode.docker.com
+172.22.0.5 hadoop-datanode1.docker.com
+``` 
+### Mount HDFS without cross-realm trust
+Run following command to mount by principal `alluxio@REALM2.COM`:
+```
+alluxio fs mount \
+--option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@EXAMPLE.COM \
+--option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/etc/security/keytabs/alluxio-realm1.headless.keytab \
+--option alluxio.master.mount.table.root.option.alluxio.security.underfs.hdfs.impersonation.enabled=true \
+/hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
+
+
+alluxio fs mount \
+--option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@REALM2.COM \
+--option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/opt/alluxio/alluxio-realm2.headless.keytab \
+--option alluxio.master.mount.table.root.option.alluxio.security.underfs.hdfs.impersonation.enabled=true \
+/hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
+```
+Following error occurs in the stdout:
+```
+DestHost:destPort hadoop-namenode.docker.com:9000 , LocalHost:localPort alluxio-master.realm2.com/172.23.0.6:0. Failed on local exception: java.io.IOException: org.apache.hadoop.security.AccessControlException: Client cannot authenticate via:[TOKEN, KERBEROS]
+root $ klist
+Ticket cache: FILE:/tmp/krb5cc_0
+Default principal: alluxio@REALM2.COM
+
+Valid starting       Expires              Service principal
+12/09/2022 08:38:49  12/10/2022 08:38:49  krbtgt/REALM2.COM@REALM2.COM
+	renew until 12/09/2022 08:38:49
+```
+Run following command to mount by principal `alluxio@EXAMPLE.COM`:
+```
+alluxio fs mount \
+--option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@EXAMPLE.COM \
+--option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/etc/security/keytabs/alluxio-realm1.headless.keytab \
+--option alluxio.master.mount.table.root.option.alluxio.security.underfs.hdfs.impersonation.enabled=true \
+/hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
+```
+The command got stuck without and progression. This is because the failure of authentication on KDC at REALM1, which can be found in the `/var/log/kerberos/krb5kdc.log` of KDC in REALM1.
+```
+Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/REALM2.COM@EXAMPLE.COM, Server not found in Kerberos database
+Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/REALM2.COM@EXAMPLE.COM, Server not found in Kerberos database
+Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/COM@EXAMPLE.COM, Server not found in Kerberos database
+Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 23}) 172.23.0.6: UNKNOWN_SERVER: authtime 0,  alluxio@EXAMPLE.COM for krbtgt/COM@EXAMPLE.COM, Server not found in Kerberos database
+```
 
 ## Problems and Solutions
 ### Kerberos
