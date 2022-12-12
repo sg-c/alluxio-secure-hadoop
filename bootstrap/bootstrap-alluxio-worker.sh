@@ -167,8 +167,6 @@ cp $HADOOP_HOME/etc/hadoop/ssl-client.xml $ALLUXIO_HOME/conf/ssl-client.xml
 
 # Configure kerberos client
 cp -f /tmp/config_files/kdc/krb5.conf /etc/krb5.conf
-sed -i "s/EXAMPLE.COM/${KRB_REALM}/g" /etc/krb5.conf
-sed -i "s/example.com/${DOMAIN_REALM}/g" /etc/krb5.conf
 
 # Create kerberos principal for "northbound" kerberization
 keytab_dir=${KEYTAB_DIR}  # This is a common volume shared across alluxio containers

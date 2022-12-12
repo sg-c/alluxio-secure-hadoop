@@ -111,8 +111,6 @@ cd $HADOOP_HOME/share/hadoop/common ; for cp in ${ACP//,/ }; do  echo == $cp; cu
 
 # Configure kerberos client
 cp -f /tmp/config_files/kdc/krb5.conf /etc/krb5.conf
-sed -i "s/EXAMPLE.COM/${KRB_REALM}/g" /etc/krb5.conf
-sed -i "s/example.com/${DOMAIN_REALM}/g" /etc/krb5.conf
 
 # copy the Hadoop config files
 cp -f /tmp/config_files/hadoop/* $HADOOP_HOME/etc/hadoop/
