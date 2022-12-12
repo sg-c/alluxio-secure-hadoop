@@ -18,11 +18,13 @@ services:
       REALM: ${REALM}
       DOMAIN_REALM: ${DOMAIN_REALM}
     volumes:
+      - ./bootstrap/bootstrap-kdc.sh:/bootstrap.sh
       - "./config_files/kdc/krb5.conf:/etc/krb5.conf"
       - "/dev/urandom:/dev/random"
       - "/etc/localtime:/etc/localtime:ro"
       - "keytabs:/etc/security/keytabs"
       - "kdc_storage:/var/kerberos/krb5kdc"
+    entrypoint: ["/bootstrap.sh"]
 
   mysql-realm2:
     networks:
