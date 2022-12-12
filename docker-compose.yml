@@ -154,7 +154,7 @@ services:
       - "alluxio-worker1.${DOMAIN} alluxio-worker1: 172.23.0.7"
       - "ranger-admin.${DOMAIN} ranger-admin: 172.23.0.16"
       # - "kdc.${KDC_DOMAIN_REALM1} 172.22.0.2"
-      - "hadoop-namenode.${SRV_DOMAIN_REALM1} 172.22.0.4"
+      # - "hadoop-namenode.${SRV_DOMAIN_REALM1} 172.22.0.4"
       # - "hadoop-datanode1.${SRV_DOMAIN_REALM1} 172.22.0.5"
     environment:
       KRB_REALM: ${REALM}
