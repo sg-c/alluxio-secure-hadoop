@@ -38,6 +38,25 @@ Execute `"kadmin -p admin/admin@EXAMPLE.COM -w admin -r EXAMPLE.COM"` to run `ka
 
 
 ## Mount HDFS from REALM1 (EXAMPLE.COM) to Alluxio in REALM2
+### Copy keytab from REALM1
+Log into the `alluxio-master-realm2` container.
+```
+scp hadoop-namenode-realm1:/etc/security/keytabs/alluxio.headless.keytab /etc/security/keytabs/alluxio-realm1.headless.keytab
+chown alluxio /etc/security/keytabs/alluxio-realm1.headless.keytab
+kinit -kt /etc/security/keytabs/alluxio-realm1.headless.keytab alluxio@EXAMPLE.COM
+```
+### Copy HADOOP configs and credentials from REALM1
+Log into the `alluxio-master-realm2` container.
+```
+mkdir /opt/hadoop-realm2
+scp hadoop-namenode-realm1:/opt/hadoop-2.10.1/etc/hadoop/core-site.xml /opt/hadoop-realm2/
+scp hadoop-namenode-realm1:/opt/hadoop-2.10.1/etc/hadoop/hdfs-site.xml /opt/hadoop-realm2/
+scp hadoop-namenode-realm1:/opt/hadoop-2.10.1/etc/hadoop/ssl-client.xml /opt/hadoop-realm2/
+scp hadoop-namenode-realm1:/etc/ssl/certs/hadoop-client-truststore.jks /opt/hadoop-realm2/
+chown -R alluxio /opt/hadoop-realm2
+
+sed -i "s#/etc/ssl/certs/hadoop-client-truststore.jks#/opt/hadoop-realm2/hadoop-client-truststore.jks#g" /opt/hadoop-realm2/ssl-client.xml
+```
 ### Update /etc/hosts
 Add following lines to the file. This sets the IP and the hostnames of the NN and DN in REALM1.
 ```
@@ -50,14 +69,8 @@ Run following command to mount by principal `alluxio@REALM2.COM`:
 alluxio fs mount \
 --option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@EXAMPLE.COM \
 --option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/etc/security/keytabs/alluxio-realm1.headless.keytab \
---option alluxio.master.mount.table.root.option.alluxio.security.underfs.hdfs.impersonation.enabled=true \
-/hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
-
-
-alluxio fs mount \
---option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@REALM2.COM \
---option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/opt/alluxio/alluxio-realm2.headless.keytab \
---option alluxio.master.mount.table.root.option.alluxio.security.underfs.hdfs.impersonation.enabled=true \
+--option alluxio.security.underfs.hdfs.impersonation.enabled=true \
+--option alluxio.underfs.hdfs.configuration=/opt/hadoop-realm2/core-site.xml:/opt/hadoop-realm2/hdfs-site.xml \
 /hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
 ```
 Following error occurs in the stdout:
@@ -101,6 +114,35 @@ Dec 09 09:06:15 kdc.kerberos.com krb5kdc[24](info): TGS_REQ (4 etypes {18 17 16 
 * Solution: remove all the volumes created by docker containers by executing `docker volume ls -q | grep alluxio | xargs -I {} docker volume rm {}`; then, restart all the containers
 * Verification: alluxio service can start successfully
 
+
+> 2022-12-12 06:31:26,350 ERROR HdfsUnderFileSystem - Failed to Login
+> org.apache.hadoop.security.KerberosAuthException: failure to login: for principal: alluxio@EXAMPLE.COM from keytab /etc/security/keytabs/alluxio-realm1.headless.keytab javax.security.auth.login.LoginException: java.lang.IllegalArgumentException: Illegal principal name alluxio@EXAMPLE.COM: org.apache.hadoop.security.authentication.util.KerberosName$NoMatchingRule: No rules applied to alluxio@EXAMPLE.COM
+* Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
+* Cause: the `alluxio.security.kerberos.auth.to.local=` config doesn NOT contain rules for mapping `alluxio@EXAMPLE.COM`
+* Solution: add `RULE:[1:$1@$0](alluxio.*@.*EXAMPLE.COM)s/.*/alluxio/` to the `hadoop.security.auth_to_local` config in the `${ALLUXIO_HOME}/conf/core-site.xml`
+* Verification: run `alluxio mount` and such error doesn't come out
+
+
+> 2022-12-12 06:46:30,889 WARN  Client - Couldn't setup connection for alluxio@EXAMPLE.COM to hadoop-namenode-realm1/172.22.0.4:9000
+> javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Fail to create credential. (63) - No service creds)]
+> ...
+> Caused by: GSSException: No valid credentials provided (Mechanism level: Fail to create credential. (63) - No service creds)
+> ...
+> Caused by: KrbException: Fail to create credential. (63) - No service creds
+> ...
+* Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
+* Cause: the alluxio doesn't have SSL configs for the HDFS@REALM1
+* Solution: copy the `core-site.xml`, `hdfs-site.xml`, `ssl-server.xml`, `ssl-client.xml` from HDFS@REALM1 to ${ALLUXIO_HOME}/conf, and mount nested UFS with these config files
+* Verification: run `alluxio mount` and such error doesn't come out
+
+
+> 2022-12-12 07:47:01,182 WARN  FileSystemMasterClientServiceHandler - Exit (Error): Mount: request=alluxioPath: "/hdfs-realm1"
+> ...
+> , Error=java.io.IOException: DestHost:destPort hadoop-namenode.docker.com:9000 , LocalHost:localPort alluxio-master.realm2.com/172.23.0.6:0. Failed on local exception: java.io.IOException: Couldn't set up IO streams: java.lang.IllegalArgumentException: Server has invalid Kerberos principal: nn/hadoop-namenode.docker.com@REALM2.COM, expecting: nn/hadoop-namenode.docker.com@EXAMPLE.COM
+* Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
+* Cause: ???
+* Solution: ???
+* Verification: run `alluxio mount` and such error doesn't come out
 
 ---
 ---
