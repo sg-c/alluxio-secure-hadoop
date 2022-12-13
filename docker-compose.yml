@@ -157,8 +157,8 @@ services:
       - "ranger-admin.${DOMAIN} ranger-admin: 172.23.0.16"
       # following hosts are for connecting to services in REALM1
       - "kdc.${KDC_DOMAIN_REALM1} kdc-realm1: 172.22.0.2"
-      - "hadoop-namenode.${SRV_DOMAIN_REALM1} hadoop-namenode-realm1: 172.22.0.4"
-      - "hadoop-datanode1.${SRV_DOMAIN_REALM1} hadoop-datanode1-realm1: 172.22.0.5"
+      - "hadoop-namenode.${SRV_DOMAIN_REALM1}: 172.22.0.4"
+      - "hadoop-datanode1.${SRV_DOMAIN_REALM1}: 172.22.0.5"
     environment:
       KRB_REALM: ${REALM}
       DOMAIN_REALM: ${DOMAIN_REALM}

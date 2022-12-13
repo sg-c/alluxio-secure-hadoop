@@ -1,7 +1,9 @@
 # Cross Realm KDC Trust
 
 ## How to use this branch.
-1. Clone this repo twice in two dirs: `alluxio-secure-hadoop` and `alluxio-secure-hadoop-realm2`
+1. Clone this repo twice in two dirs: `alluxio-secure-hadoop` and `alluxio-secure-hadoop-realm2` by doing
+     1. ` git clone https://github.com/sg-c/alluxio-secure-hadoop.git alluxio-secure-hadoop`
+     2. ` git clone https://github.com/sg-c/alluxio-secure-hadoop.git alluxio-secure-hadoop-realm2`
 2. In the `alluxio-secure-hadoop` dir, check out the `main` branch, and start the cluster.
 3. In the `alluxio-secure-hadoop-realm2` dir, check out the `cross-realm-trust` branch, and then start the cluster.
 
@@ -14,9 +16,15 @@
 
 
 ## Access REALM1 (EXAMPLE.COM) from Alluxio container in REALM2
-### Update /etc/hosts
-Add `172.22.0.2 kdc.kerberos.com` to the file. This sets the IP and the hostname of the KDC in REALM1.
+### Update /etc/hosts in the Alluxio service containers
+Add following lines to the /etc/hosts in the alluxio containers. This is done in the `extra_hosts` part in the `docker-compose.yml`.
+```
+ 172.22.0.2     kdc.kerberos.com kdc-realm1
+ 172.22.0.4     hadoop-namenode.docker.com
+ 172.22.0.5     hadoop-datanode1.docker.com
+```
 ### Update /etc/krb5.conf
+Add following changes to the `/etc/krb5.conf` file. This change can be seen in the `config_files/kdc/krb5.conf` file and there is NO manual changes needed.
 ```
  [realms]
   REALM2.COM = {
@@ -32,9 +40,13 @@ Add `172.22.0.2 kdc.kerberos.com` to the file. This sets the IP and the hostname
   kdc.realm2.com = REALM2.COM
 + .kdc.kerberos.com = EXAMPLE.COM
 + kdc.kerberos.com = EXAMPLE.COM
++ .docker.com = EXAMPLE.COM
++ docker.com = EXAMPLE.COM
 ```
 ### Verify the setup
-Execute `"kadmin -p admin/admin@EXAMPLE.COM -w admin -r EXAMPLE.COM"` to run `kadmin` connecting to KDC of `EXAMPLE.COM`. In the `kadmin` REPL, exeute `list_principals` command to show all the existing principals. The output principals all have `EXAMPLE.COM` realm.
+Execute `"kadmin -p admin/admin@EXAMPLE.COM -w admin -r EXAMPLE.COM"` to run `kadmin` connecting to KDC of `EXAMPLE.COM`. 
+In the `kadmin` REPL, exeute `list_principals` command to show all the existing principals. 
+The output principals all have `EXAMPLE.COM` realm.
 
 
 ## Mount HDFS from REALM1 (EXAMPLE.COM) to Alluxio in REALM2
@@ -43,7 +55,10 @@ Log into the `alluxio-master-realm2` container.
 ```
 scp hadoop-namenode-realm1:/etc/security/keytabs/alluxio.headless.keytab /etc/security/keytabs/alluxio-realm1.headless.keytab
 chown alluxio /etc/security/keytabs/alluxio-realm1.headless.keytab
+
+# Verify that you can login as alluxio@EXAMPLE.COM instead of alluxio@REALM2.COM, and then logout with kdestroy
 kinit -kt /etc/security/keytabs/alluxio-realm1.headless.keytab alluxio@EXAMPLE.COM
+kdestroy
 ```
 ### Copy HADOOP configs and credentials from REALM1
 Log into the `alluxio-master-realm2` container.
@@ -58,7 +73,7 @@ chown -R alluxio /opt/hadoop-realm2
 sed -i "s#/etc/ssl/certs/hadoop-client-truststore.jks#/opt/hadoop-realm2/hadoop-client-truststore.jks#g" /opt/hadoop-realm2/ssl-client.xml
 ```
 ### Update /etc/hosts
-Add following lines to the file. This sets the IP and the hostnames of the NN and DN in REALM1.
+Add following lines to the file. This sets the IP and the hostnames of the NN and DN in REALM1. This is done in the `extra_hosts` part in the `docker-compose.yml`.
 ```
 172.22.0.4 hadoop-namenode.docker.com
 172.22.0.5 hadoop-datanode1.docker.com
@@ -66,6 +81,8 @@ Add following lines to the file. This sets the IP and the hostnames of the NN an
 ### Mount HDFS without cross-realm trust
 Run following command to mount by principal `alluxio@REALM2.COM`:
 ```
+kinit -kt /etc/security/keytabs/alluxio.headless.keytab alluxio@REALM2.COM
+
 alluxio fs mount \
 --option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@EXAMPLE.COM \
 --option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/etc/security/keytabs/alluxio-realm1.headless.keytab \
@@ -73,7 +90,17 @@ alluxio fs mount \
 --option alluxio.underfs.hdfs.configuration=/opt/hadoop-realm2/core-site.xml:/opt/hadoop-realm2/hdfs-site.xml \
 /hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
 ```
+Verify the Alluxio in REALM2 can get the file in HDFS of REALM1
+```
+# Upload a file to HDFS in REALM1. Do this in the HDFS container in REALM1.
+docker exec -it hadoop-namenode bash -l
+hdfs dfs -copyFromLocal bootstrap.sh /tmp/
+hdfs dfs -tail /tmp/bootstrap.sh
 
+# Get the file from ALLUXIO in REALM2
+docker exec -it alluxio-master-realm2 bash -l
+alluxio fs -Dalluxio.user.file.metadata.sync.interval=0 ls /hdfs-realm1/tmp/bootstrap.sh
+```
 ## Problems and Solutions
 ### Kerberos
 > kadmin.local: Can not fetch master key (error: No such file or directory). while initializing kadmin.local interface
