@@ -1,4 +1,4 @@
-# Cross Realm KDC Trust
+# Alluxio Access HDFS in a Different Realm
 
 ## How to use this branch.
 1. Clone this repo twice in two dirs: `alluxio-secure-hadoop` and `alluxio-secure-hadoop-realm2` by doing
@@ -35,7 +35,7 @@ Add following changes to the `/etc/krb5.conf` file. This change can be seen in t
 +  kdc = kdc.kerberos.com
 +  admin_server = kdc.kerberos.com
 + }
- [domain_realm]
+ [domain_real
   .kdc.realm2.com = REALM2.COM
   kdc.realm2.com = REALM2.COM
 + .kdc.kerberos.com = EXAMPLE.COM
@@ -47,6 +47,9 @@ Add following changes to the `/etc/krb5.conf` file. This change can be seen in t
 Execute `"kadmin -p admin/admin@EXAMPLE.COM -w admin -r EXAMPLE.COM"` to run `kadmin` connecting to KDC of `EXAMPLE.COM`. 
 In the `kadmin` REPL, exeute `list_principals` command to show all the existing principals. 
 The output principals all have `EXAMPLE.COM` realm.
+
+
+# Without Cross-Realm Trust
 
 
 ## Mount HDFS from REALM1 (EXAMPLE.COM) to Alluxio in REALM2
@@ -144,6 +147,16 @@ alluxio fs -Dalluxio.user.file.metadata.sync.interval=0 ls /hdfs-realm1/tmp/boot
 * Cause: This appears to be FQDN issue. 
 * Solution: Update the `/etc/krb5.conf` and add `.docker.com = EXAMPLE.COM` and `docker.com = EXAMPLE.COM` to the `[domain_realm]` section, and then restart the alluxio service.
 * Verification: run `alluxio mount` and such error doesn't come out
+
+
+# With Cross-Realm Trust
+
+## Create Shared Principal
+The shared principal is explained [here](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/system-level_authentication_guide/using_trusts). To create shared principal, do this:
+```
+# In the REALM1 KDC container add the shared principal
+kadmin -p admin/admin@EXAMPLE.COM -w admin -q addprinc -pw changeme123 krbtgt/EXAMPLE.COM@REALM2.COM
+```
 
 ---
 ---
