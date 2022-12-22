@@ -382,6 +382,10 @@ If you are done testing and do not intend to spin up the docker images again, re
 
      docker volume rm alluxio-secure-prometheus_data
 
+Or you can shutdown the docker compose app and remove all volumes in one shot.
+
+     docker compose down --volumes
+
 <a name="use_alluxio"/></a>
 ### &#x1F536; Use Alluxio with the secure Hadoop environment 
 
