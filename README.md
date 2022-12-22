@@ -1,3 +1,167 @@
+# Alluxio Access HDFS in a Different Realm
+
+## How to use this branch.
+1. Clone this repo twice in two dirs: `alluxio-secure-hadoop` and `alluxio-secure-hadoop-realm2` by doing
+     1. ` git clone https://github.com/sg-c/alluxio-secure-hadoop.git alluxio-secure-hadoop`
+     2. ` git clone https://github.com/sg-c/alluxio-secure-hadoop.git alluxio-secure-hadoop-realm2`
+2. In the `alluxio-secure-hadoop` dir, check out the `main` branch, and start the cluster.
+3. In the `alluxio-secure-hadoop-realm2` dir, check out the `cross-realm-trust` branch, and then start the cluster.
+
+
+## How does this branch work with the main branch.
+### Network
+* The `docker-compose.yml` in the main branch will create a "bridge" network.
+* The `docker-compose.yml` in this branch use the network created by the main branch as an external network.
+* Two clusters (one created from `alluxio-secure-hadoop` and the other from `alluxio-secure-hadoop-realm2`) sit in the same network, so containers can communicate with each other through the network.
+
+
+## Access REALM1 (EXAMPLE.COM) from Alluxio container in REALM2
+### Update /etc/hosts in the Alluxio service containers
+Add following lines to the /etc/hosts in the alluxio containers. This is done in the `extra_hosts` part in the `docker-compose.yml`.
+```
+ 172.22.0.2     kdc.kerberos.com kdc-realm1
+ 172.22.0.4     hadoop-namenode.docker.com
+ 172.22.0.5     hadoop-datanode1.docker.com
+```
+### Update /etc/krb5.conf
+Add following changes to the `/etc/krb5.conf` file. This change can be seen in the `config_files/kdc/krb5.conf` file and there is NO manual changes needed.
+```
+ [realms]
+  REALM2.COM = {
+   kdc = kdc.realm2.com
+   admin_server = kdc.realm2.com
+  }
++ EXAMPLE.COM = {
++  kdc = kdc.kerberos.com
++  admin_server = kdc.kerberos.com
++ }
+ [domain_real
+  .kdc.realm2.com = REALM2.COM
+  kdc.realm2.com = REALM2.COM
++ .kdc.kerberos.com = EXAMPLE.COM
++ kdc.kerberos.com = EXAMPLE.COM
++ .docker.com = EXAMPLE.COM
++ docker.com = EXAMPLE.COM
+```
+### Verify the setup
+Execute `"kadmin -p admin/admin@EXAMPLE.COM -w admin -r EXAMPLE.COM"` to run `kadmin` connecting to KDC of `EXAMPLE.COM`. 
+In the `kadmin` REPL, exeute `list_principals` command to show all the existing principals. 
+The output principals all have `EXAMPLE.COM` realm.
+
+
+# Without Cross-Realm Trust
+
+
+## Mount HDFS from REALM1 (EXAMPLE.COM) to Alluxio in REALM2
+### Copy keytab from REALM1
+Log into the `alluxio-master-realm2` container.
+```
+scp hadoop-namenode-realm1:/etc/security/keytabs/alluxio.headless.keytab /etc/security/keytabs/alluxio-realm1.headless.keytab
+chown alluxio /etc/security/keytabs/alluxio-realm1.headless.keytab
+
+# Verify that you can login as alluxio@EXAMPLE.COM instead of alluxio@REALM2.COM, and then logout with kdestroy
+kinit -kt /etc/security/keytabs/alluxio-realm1.headless.keytab alluxio@EXAMPLE.COM
+kdestroy
+```
+### Copy HADOOP configs and credentials from REALM1
+Log into the `alluxio-master-realm2` container.
+```
+mkdir /opt/hadoop-realm2
+scp hadoop-namenode-realm1:/opt/hadoop-2.10.1/etc/hadoop/core-site.xml /opt/hadoop-realm2/
+scp hadoop-namenode-realm1:/opt/hadoop-2.10.1/etc/hadoop/hdfs-site.xml /opt/hadoop-realm2/
+scp hadoop-namenode-realm1:/opt/hadoop-2.10.1/etc/hadoop/ssl-client.xml /opt/hadoop-realm2/
+scp hadoop-namenode-realm1:/etc/ssl/certs/hadoop-client-truststore.jks /opt/hadoop-realm2/
+chown -R alluxio /opt/hadoop-realm2
+
+sed -i "s#/etc/ssl/certs/hadoop-client-truststore.jks#/opt/hadoop-realm2/hadoop-client-truststore.jks#g" /opt/hadoop-realm2/ssl-client.xml
+```
+### Update /etc/hosts
+Add following lines to the file. This sets the IP and the hostnames of the NN and DN in REALM1. This is done in the `extra_hosts` part in the `docker-compose.yml`.
+```
+172.22.0.4 hadoop-namenode.docker.com
+172.22.0.5 hadoop-datanode1.docker.com
+``` 
+### Mount HDFS without cross-realm trust
+Run following command to mount by principal `alluxio@REALM2.COM`:
+```
+kinit -kt /etc/security/keytabs/alluxio.headless.keytab alluxio@REALM2.COM
+
+alluxio fs mount \
+--option alluxio.security.underfs.hdfs.kerberos.client.principal=alluxio@EXAMPLE.COM \
+--option alluxio.security.underfs.hdfs.kerberos.client.keytab.file=/etc/security/keytabs/alluxio-realm1.headless.keytab \
+--option alluxio.security.underfs.hdfs.impersonation.enabled=true \
+--option alluxio.underfs.hdfs.configuration=/opt/hadoop-realm2/core-site.xml:/opt/hadoop-realm2/hdfs-site.xml \
+/hdfs-realm1 hdfs://hadoop-namenode.docker.com:9000/
+```
+Verify the Alluxio in REALM2 can get the file in HDFS of REALM1
+```
+# Upload a file to HDFS in REALM1. Do this in the HDFS container in REALM1.
+docker exec -it hadoop-namenode bash -l
+hdfs dfs -copyFromLocal bootstrap.sh /tmp/
+hdfs dfs -tail /tmp/bootstrap.sh
+
+# Get the file from ALLUXIO in REALM2
+docker exec -it alluxio-master-realm2 bash -l
+alluxio fs -Dalluxio.user.file.metadata.sync.interval=0 ls /hdfs-realm1/tmp/bootstrap.sh
+```
+## Problems and Solutions
+### Kerberos
+> kadmin.local: Can not fetch master key (error: No such file or directory). while initializing kadmin.local interface
+* Occurrence: it happens when the KDC container starts up.
+* Cause: The `kdc_storage` volume persists KDC database. If the KDC config is changed and KDC container is restarted without delete the `kdc_storage` volume, conflicts can happen and result in such issue.
+* Solution: Delete the `kdc_storage` volume by executing ``
+* Verifcation: go to the `kdc-realm2` container and execute `kadmin.local` and then `list_principals` cmds.
+
+> failure to login: for principal: alluxio@REALM2.COM from keytab /etc/security/keytabs/alluxio.headless.keytab javax.security.auth.login.LoginException: Checksum failed
+* Occurrence: it happens when the Alluxio master starts
+* Cause: the keytab file content is invalid. This is because the Docker runtime got started, but the keytab which is saved in the `keystore` volume persist from the previous session.
+* Solution: remove all the volumes created by docker containers by executing `docker volume ls -q | grep alluxio | xargs -I {} docker volume rm {}`; then, restart all the containers
+* Verification: alluxio service can start successfully
+
+
+> 2022-12-12 06:31:26,350 ERROR HdfsUnderFileSystem - Failed to Login
+> org.apache.hadoop.security.KerberosAuthException: failure to login: for principal: alluxio@EXAMPLE.COM from keytab /etc/security/keytabs/alluxio-realm1.headless.keytab javax.security.auth.login.LoginException: java.lang.IllegalArgumentException: Illegal principal name alluxio@EXAMPLE.COM: org.apache.hadoop.security.authentication.util.KerberosName$NoMatchingRule: No rules applied to alluxio@EXAMPLE.COM
+* Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
+* Cause: the `alluxio.security.kerberos.auth.to.local=` config doesn NOT contain rules for mapping `alluxio@EXAMPLE.COM`
+* Solution: add `RULE:[1:$1@$0](alluxio.*@.*EXAMPLE.COM)s/.*/alluxio/` to the `hadoop.security.auth_to_local` config in the `${ALLUXIO_HOME}/conf/core-site.xml`
+* Verification: run `alluxio mount` and such error doesn't come out
+
+
+> 2022-12-12 06:46:30,889 WARN  Client - Couldn't setup connection for alluxio@EXAMPLE.COM to hadoop-namenode-realm1/172.22.0.4:9000
+> javax.security.sasl.SaslException: GSS initiate failed [Caused by GSSException: No valid credentials provided (Mechanism level: Fail to create credential. (63) - No service creds)]
+> ...
+> Caused by: GSSException: No valid credentials provided (Mechanism level: Fail to create credential. (63) - No service creds)
+> ...
+> Caused by: KrbException: Fail to create credential. (63) - No service creds
+> ...
+* Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
+* Cause: the alluxio doesn't have SSL configs for the HDFS@REALM1
+* Solution: copy the `core-site.xml`, `hdfs-site.xml`, `ssl-server.xml`, `ssl-client.xml` from HDFS@REALM1 to ${ALLUXIO_HOME}/conf, and mount nested UFS with these config files
+* Verification: run `alluxio mount` and such error doesn't come out
+
+
+> 2022-12-12 07:47:01,182 WARN  FileSystemMasterClientServiceHandler - Exit (Error): Mount: request=alluxioPath: "/hdfs-realm1"
+> ...
+> , Error=java.io.IOException: DestHost:destPort hadoop-namenode.docker.com:9000 , LocalHost:localPort alluxio-master.realm2.com/172.23.0.6:0. Failed on local exception: java.io.IOException: Couldn't set up IO streams: java.lang.IllegalArgumentException: Server has invalid Kerberos principal: nn/hadoop-namenode.docker.com@REALM2.COM, expecting: nn/hadoop-namenode.docker.com@EXAMPLE.COM
+* Occurrence: it happens when mounting HDFS@REALM1 to the Alluxio@REALM2
+* Cause: This appears to be FQDN issue. 
+* Solution: Update the `/etc/krb5.conf` and add `.docker.com = EXAMPLE.COM` and `docker.com = EXAMPLE.COM` to the `[domain_realm]` section, and then restart the alluxio service.
+* Verification: run `alluxio mount` and such error doesn't come out
+
+
+# With Cross-Realm Trust
+
+## Create Shared Principal
+The shared principal is explained [here](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/system-level_authentication_guide/using_trusts). To create shared principal, do this:
+```
+# In the REALM1 KDC container add the shared principal
+kadmin -p admin/admin@EXAMPLE.COM -w admin -q addprinc -pw changeme123 krbtgt/EXAMPLE.COM@REALM2.COM
+```
+
+---
+---
+**Content below above divider is the copy of the main branch. For this branch, pls checkout above instructions.**
+
 # alluxio-secure-hadoop
 Test Alluxio Enterprise with Apache Hadoop 2.10.1 in secure mode
 
@@ -58,7 +222,22 @@ Add your user to the docker group
 
 Install needed tools
 
-     sudo yum -y install docker git 
+     sudo yum -y install git yum-utils
+
+Add package repo for docker-ce.
+
+     sudo yum-config-manager \
+          --add-repo \
+          https://download.docker.com/linux/centos/docker-ce.repo
+
+Install docker-ce (Docker Engine)
+
+     sudo yum -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+Start/Stop Docker Engine
+
+     sudo systemctl start docker
+     sudo systemctl stop docker
 
 Increase the ulimit in /etc/sysconfig/docker
 
@@ -70,20 +249,6 @@ Logout and back in to get new group membershiop
      exit
 
      ssh ...
-
-Install the docker-compose package
-
-     Red Hat EL 7.x
-
-          DOCKER_COMPOSE_VERSION="1.23.2"
-
-     Red Hat EL 8.x
-
-          DOCKER_COMPOSE_VERSION="1.27.0"
-
-     sudo  curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-
-     sudo chmod +x /usr/local/bin/docker-compose
 
 #### Step 2. Clone this repo:
 
