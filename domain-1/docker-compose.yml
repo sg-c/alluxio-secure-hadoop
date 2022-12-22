@@ -4,14 +4,14 @@ networks:
   custom:
     name: alluxio-security_network
     external: true
-    
+
 services:
   kdc:
     networks:
       custom:
     image: sequenceiq/kerberos
     volumes:
-      - "./config_files/kdc/krb5.conf:/etc/krb5.conf"
+      - "../config_files/kdc/krb5.conf:/etc/krb5.conf"
       - "/dev/urandom:/dev/random"
       - "/etc/localtime:/etc/localtime:ro"
       - "keytabs:/etc/security/keytabs"
