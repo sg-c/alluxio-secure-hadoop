@@ -318,6 +318,14 @@ Note: if you run out of Docker volume space, run this command:
 <a name="start_containers"/></a>
 ### &#x1F536; Start the KDC, Hadoop and Alluxio containers
 
+#### Step 0. Create the network
+
+The docker network can be created by the `./network.sh` script. Just run following command.
+
+     ./network.sh create      # for creating the network
+     ./network.sh remove      # for removing the network
+     ./netwokr.sh inspect     # for inspecting the network
+
 #### Step 1. Remove volumes
 
 Remove any existing volumes for these containers

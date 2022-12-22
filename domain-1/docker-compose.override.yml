@@ -1,0 +1,8 @@
+version: '3.11'
+
+services:
+  kdc:
+    hostname: kdc.${DOMAIN_1}
+    environment:
+      REALM: ${REALM_1}
+      DOMAIN_REALM: kdc.${DOMAIN_1}
