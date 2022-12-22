@@ -222,7 +222,22 @@ Add your user to the docker group
 
 Install needed tools
 
-     sudo yum -y install docker git 
+     sudo yum -y install git yum-utils
+
+Add package repo for docker-ce.
+
+     sudo yum-config-manager \
+          --add-repo \
+          https://download.docker.com/linux/centos/docker-ce.repo
+
+Install docker-ce (Docker Engine)
+
+     sudo yum -y install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+Start/Stop Docker Engine
+
+     sudo systemctl start docker
+     sudo systemctl stop docker
 
 Increase the ulimit in /etc/sysconfig/docker
 
@@ -234,20 +249,6 @@ Logout and back in to get new group membershiop
      exit
 
      ssh ...
-
-Install the docker-compose package
-
-     Red Hat EL 7.x
-
-          DOCKER_COMPOSE_VERSION="1.23.2"
-
-     Red Hat EL 8.x
-
-          DOCKER_COMPOSE_VERSION="1.27.0"
-
-     sudo  curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` -o /usr/local/bin/docker-compose
-
-     sudo chmod +x /usr/local/bin/docker-compose
 
 #### Step 2. Clone this repo:
 
