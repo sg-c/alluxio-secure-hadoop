@@ -2,8 +2,12 @@
 
 set -e
 
+echo "bootstrap 111"
+
 # execute the default entrypoint first
 /config.sh
+
+echo "bootstrap 222"
 
 # /shared/krb5 is mounted by a named volume 
 # and shared by services in the same compose app
@@ -25,4 +29,4 @@ cat>/etc/krb5.conf.d/krb5.${REALM}.conf<<EOF
    $DOMAIN_REALM = $REALM
 EOF
 
-echo "bootstrap is done"
+echo "bootstrap 333"
