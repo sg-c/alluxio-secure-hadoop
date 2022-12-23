@@ -8,6 +8,8 @@
 # HADOOP NAMENODE
 #
 
+set -e
+
 grep HADOOP_HOME /etc/profile
 if [ "$?" != 0 ];then
 	echo "export HADOOP_HOME=/opt/hadoop" >> /etc/profile
@@ -109,10 +111,9 @@ fi
 # Installing libraries if any - (resource urls added comma separated to the ACP system variable)
 cd $HADOOP_HOME/share/hadoop/common ; for cp in ${ACP//,/ }; do  echo == $cp; curl -LO $cp ; done; cd -
 
-# Configure kerberos client
-cp -f /tmp/config_files/kdc/krb5.conf /etc/krb5.conf
-sed -i "s/EXAMPLE.COM/${KRB_REALM}/g" /etc/krb5.conf
-sed -i "s/example.com/${DOMAIN_REALM}/g" /etc/krb5.conf
+# Insert the "includedir" directive to the beginning of the /etc/krb5.conf
+KRB5_INCLUDE='includedir /etc/krb5.conf'
+grep -qxF $KRB5_INCLUDE /etc/krb5.conf || sed -i '1i\${KRB5_INCLUDE}' /etc/krb5.conf
 
 # copy the Hadoop config files
 cp -f /tmp/config_files/hadoop/* $HADOOP_HOME/etc/hadoop/
@@ -285,7 +286,7 @@ while true
 do
   i=$((i+1))
 
-  mysql --host=mysql --user=root --password=$NON_ROOT_PASSWORD -e '\q'  >/dev/null 2>&1
+  mysql --host=${MYSQL_FQDN} --user=root --password=$NON_ROOT_PASSWORD -e '\q'  >/dev/null 2>&1
 
   if [ "$?" == 0 ]; then
     break
@@ -299,13 +300,13 @@ do
   sleep 3
 done
 
-result=$(mysql --host=mysql --user=root --password=$NON_ROOT_PASSWORD -e "show databases;" | grep hive_metastore)
+result=$(mysql --host=${MYSQL_FQDN} --user=root --password=$NON_ROOT_PASSWORD -e "show databases;" | grep hive_metastore)
 if [ "$result" != "" ];then
   echo "- Skipping create hive_metastore, already exists "
 else
   echo "- Creating the hive_metastore "
 
-  mysql --host=mysql \
+  mysql --host=${MYSQL_FQDN} \
     --user=root --password=$NON_ROOT_PASSWORD < /tmp/mysql_commands.sql
 
   # Create the Hive metastore schema in mysql
