@@ -112,8 +112,9 @@ fi
 cd $HADOOP_HOME/share/hadoop/common ; for cp in ${ACP//,/ }; do  echo == $cp; curl -LO $cp ; done; cd -
 
 # Insert the "includedir" directive to the beginning of the /etc/krb5.conf
-KRB5_INCLUDE='includedir /etc/krb5.conf'
-grep -qxF $KRB5_INCLUDE /etc/krb5.conf || sed -i '1i\${KRB5_INCLUDE}' /etc/krb5.conf
+# Then, append the krb5.main.conf (from service kdc) to /etc/krb5.conf
+echo 'includedir /etc/krb5.conf.d' > /etc/krb5.conf
+cat /tmp/etc/krb5.main.conf >> /etc/krb5.conf
 
 # copy the Hadoop config files
 cp -f /tmp/config_files/hadoop/* $HADOOP_HOME/etc/hadoop/
