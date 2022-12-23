@@ -38,7 +38,7 @@ services:
     image: myalluxio/alluxio-secure-hadoop:hadoop-2.10.1
     tty: true
     volumes:
-      - ./tmp/etc/krb5.main.conf:/tmp/etc/krb5.conf
+      - ./tmp/etc/krb5.main.conf:/tmp/etc/krb5.main.conf
       - ../config_files:/tmp/config_files
       - ../config_files/kdc/krb5.conf.d:/etc/krb5.conf.d
       - ../bootstrap/bootstrap-hadoop-namenode.sh:/bootstrap.sh
