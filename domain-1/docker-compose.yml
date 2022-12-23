@@ -19,7 +19,7 @@ services:
       - "keytabs:/etc/security/keytabs"
       - "kdc_storage:/var/kerberos/krb5kdc"
       - "krb5_conf_shared:/shared/krb5/"
-    command: "/bin/bash -c '/config.sh; /bootstrap.sh'"
+    entrypoint: ["/bootstrap.sh"]
 
   # mysql:
   #   networks:

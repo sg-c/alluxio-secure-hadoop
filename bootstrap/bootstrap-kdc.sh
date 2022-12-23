@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# execute the default entrypoint first
+/config.sh
+
 # /shared/krb5 is mounted by a named volume 
 # and shared by services in the same compose app
 echo "includedir /etc/krb5.conf.d" > /shared/krb5/krb5.conf
@@ -19,5 +22,3 @@ cat>/etc/krb5.conf.d/krb5.${REALM}.conf<<EOF
   .$DOMAIN_REALM = $REALM
    $DOMAIN_REALM = $REALM
 EOF
-
-echo "bootstrap.sh is done"
