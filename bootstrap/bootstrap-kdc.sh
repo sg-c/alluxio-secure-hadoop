@@ -6,6 +6,9 @@ echo "includedir /etc/krb5.conf.d" > /shared/krb5/krb5.conf
 cat /etc/krb5.conf >> /shared/krb5/krb5.conf
 
 # add realms and domain_realm to an independent krb5.conf for sharing
+: ${KDC_ADDRESS:=$(hostname -f)}
+: ${KERB_ADMIN_PORT:=749}
+: ${KERB_KDC_PORT:=88}
 cat>/etc/krb5.conf.d/krb5.${REALM}.conf<<EOF
 [realms]
    $REALM = {
