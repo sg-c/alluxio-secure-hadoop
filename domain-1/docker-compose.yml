@@ -374,12 +374,12 @@ volumes:
     driver: local
   keytabs:
     driver: local
-  # keystore:
-  #   driver: local
-  # hdfs_storage:
-  #   driver: local
-  # mysql_data:
-  #   driver: local
+  keystore:
+    driver: local
+  hdfs_storage:
+    driver: local
+  mysql_data:
+    driver: local
   # prometheus_data:
   #   driver: local
   # db_data:
