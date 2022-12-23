@@ -39,9 +39,9 @@ services:
     tty: true
     volumes:
       - "./tmp/etc/krb5.conf:/etc/krb5.conf"
-      - ./config_files:/tmp/config_files
+      - ../config_files:/tmp/config_files
+      - ../bootstrap/bootstrap-hadoop-namenode.sh:/bootstrap.sh
       - /etc/localtime:/etc/localtime:ro
-      - ./bootstrap/bootstrap-hadoop-namenode.sh:/bootstrap.sh
       - hdfs_storage:/opt/hadoop/data
       - keytabs:/etc/security/keytabs
       - keystore:/etc/ssl/certs
