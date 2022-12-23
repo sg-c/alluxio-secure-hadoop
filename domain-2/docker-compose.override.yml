@@ -3,21 +3,18 @@ version: '3.11'
 services:
   kdc:
     hostname: kdc.${DOMAIN_2}
-    container_name: kdc-${DOMAIN_2}
     environment:
       REALM: ${REALM_2}
       DOMAIN_REALM: kdc.${DOMAIN_2}
 
   mysql:
     hostname: mysql.${DOMAIN_2}
-    container_name: mysql-${DOMAIN_2}
 
   hadoop-namenode:
     hostname: hadoop-namenode.${DOMAIN_2}
-    container_name: hadoop-namenode-${DOMAIN_2}
     depends_on: 
-      - kdc-${DOMAIN_2}
-      - mysql-${DOMAIN_2}
+      - kdc
+      - mysql
     environment:
       KRB_REALM: ${REALM_2}
       DOMAIN_REALM: kdc.${DOMAIN_2}
