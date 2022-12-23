@@ -37,7 +37,7 @@ else
        -validity 360 -keysize 2048 \
        -alias ${HADOOP_NAMENODE_FQDN} \
        -dname "CN=${HADOOP_NAMENODE_FQDN}, OU=Alluxio, L=San Mateo, ST=CA, C=US" \
-       -keystore hadoop-${HADOOP_NAMENODE_FQDN}-keystore.jks
+       -keystore ${HADOOP_NAMENODE_FQDN}-keystore.jks
 
      # For the datanode1, generate the keystore and certificate
      keytool -genkey -keyalg RSA \
@@ -45,41 +45,41 @@ else
        -validity 360 -keysize 2048 \
        -alias ${HADOOP_DATANODE1_FQDN} \
        -dname "CN=${HADOOP_DATANODE1_FQDN}, OU=Alluxio, L=San Mateo, ST=CA, C=US" \
-       -keystore hadoop-${HADOOP_DATANODE1_FQDN}-keystore.jks
+       -keystore ${HADOOP_DATANODE1_FQDN}-keystore.jks
 
      # Export the namenode certificate's public key to a certificate file
      keytool -export -rfc -storepass $store_password \
        -alias ${HADOOP_NAMENODE_FQDN} \
-       -keystore hadoop-${HADOOP_NAMENODE_FQDN}-keystore.jks \
-       -file hadoop-${HADOOP_NAMENODE_FQDN}.cert 
+       -keystore ${HADOOP_NAMENODE_FQDN}-keystore.jks \
+       -file ${HADOOP_NAMENODE_FQDN}.cert 
 
      # Export the datanode1 certificate's public key to a certificate file
      keytool -export -rfc -storepass $store_password \
        -alias ${HADOOP_DATANODE1_FQDN} \
-       -keystore hadoop-${HADOOP_DATANODE1_FQDN}-keystore.jks \
-       -file hadoop-${HADOOP_DATANODE1_FQDN}.cert 
+       -keystore ${HADOOP_DATANODE1_FQDN}-keystore.jks \
+       -file ${HADOOP_DATANODE1_FQDN}.cert 
 
      # Import the namenode certificate to a truststore file
      keytool -import -noprompt -storepass $store_password \
        -alias ${HADOOP_NAMENODE_FQDN} \
-       -file  hadoop-${HADOOP_NAMENODE_FQDN}.cert \
-       -keystore hadoop-${HADOOP_NAMENODE_FQDN}-truststore.jks 
+       -file  ${HADOOP_NAMENODE_FQDN}.cert \
+       -keystore ${HADOOP_NAMENODE_FQDN}-truststore.jks 
 
      # Import the datanode certificate to a truststore file
      keytool -import -noprompt -storepass $store_password \
        -alias ${HADOOP_DATANODE1_FQDN} \
-       -file  hadoop-${HADOOP_DATANODE1_FQDN}.cert \
-       -keystore hadoop-${HADOOP_DATANODE1_FQDN}-truststore.jks 
+       -file  ${HADOOP_DATANODE1_FQDN}.cert \
+       -keystore ${HADOOP_DATANODE1_FQDN}-truststore.jks 
 
      # Create a single client truststore file that contains the public key from all the certificates
      keytool -import -noprompt -storepass $store_password \
        -alias ${HADOOP_NAMENODE_FQDN} \
-       -file  hadoop-${HADOOP_NAMENODE_FQDN}.cert \
+       -file  ${HADOOP_NAMENODE_FQDN}.cert \
        -keystore hadoop-client-truststore.jks 
 
      keytool -import -noprompt -storepass $store_password \
        -alias ${HADOOP_DATANODE1_FQDN} \
-       -file  hadoop-${HADOOP_DATANODE1_FQDN}.cert \
+       -file  ${HADOOP_DATANODE1_FQDN}.cert \
        -keystore hadoop-client-truststore.jks 
 
      # Set permissions and ownership on the keys
