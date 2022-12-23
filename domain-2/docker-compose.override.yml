@@ -3,12 +3,14 @@ version: '3.11'
 services:
   kdc:
     hostname: kdc.${DOMAIN_2}
+    container_name: kdc-${DOMAIN_2}
     environment:
       REALM: ${REALM_2}
       DOMAIN_REALM: kdc.${DOMAIN_2}
 
   mysql:
     hostname: mysql.${DOMAIN_2}
+    container_name: mysql-${DOMAIN_2}
 
   hadoop-namenode:
     hostname: hadoop-namenode.${DOMAIN_2}
@@ -23,7 +25,7 @@ services:
       HADOOP_NAMENODE_FQDN: hadoop-namenode.${DOMAIN_2}
       HADOOP_DATANODE1_FQDN: hadoop-datanode1.${DOMAIN_2}
       ALLUXIO_MASTER_FQDN: alluxio-master.${DOMAIN_2}
-      MYSQL_FQDN: mysql.${DOMAIN_1}
+      MYSQL_FQDN: mysql.${DOMAIN_2}
     ports:
       - "52470:50470"
       - "12888:19888"
