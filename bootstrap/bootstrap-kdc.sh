@@ -3,7 +3,7 @@
 set -e
 
 # execute the default entrypoint first
-# /config.sh
+/config.sh
 
 # /shared/krb5 is mounted by a named volume 
 # and shared by services in the same compose app
