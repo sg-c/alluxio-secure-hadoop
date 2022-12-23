@@ -11,11 +11,15 @@ services:
       custom:
     image: sequenceiq/kerberos
     volumes:
-      - "../config_files/kdc/krb5.conf:/etc/krb5.conf"
+      - "../bootstrap/bootstrap-kdc.sh:/bootstrap.sh"
+      - "../config_files/kdc:/tmp"
+      - "../config_files/kdc/krb5.conf.d:/etc/krb5.conf.d"
       - "/dev/urandom:/dev/random"
       - "/etc/localtime:/etc/localtime:ro"
       - "keytabs:/etc/security/keytabs"
       - "kdc_storage:/var/kerberos/krb5kdc"
+      - "krb5_conf_shared:/tmp/etc/krb5.conf"
+    command: "/bin/bash -c '/config.sh; /bootstrap.sh'"
 
   # mysql:
   #   networks:
@@ -368,6 +372,8 @@ services:
   #   restart: always
 
 volumes:
+  krb5_conf_shared:
+    driver: local
   kdc_storage:
     driver: local
   keytabs:
