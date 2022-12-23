@@ -19,3 +19,5 @@ cat>/etc/krb5.conf.d/krb5.${REALM}.conf<<EOF
   .$DOMAIN_REALM = $REALM
    $DOMAIN_REALM = $REALM
 EOF
+
+echo "bootstrap.sh is done"
