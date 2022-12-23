@@ -13,7 +13,7 @@ services:
     volumes:
       - "../bootstrap/bootstrap-kdc.sh:/bootstrap.sh"
       - "../config_files/kdc/krb5.conf.d:/etc/krb5.conf.d"
-      - "./tmp/etc/kdc/krb5.conf:/etc/krb5.conf"
+      - "./tmp/etc/krb5.conf:/etc/krb5.conf"
       - "/dev/urandom:/dev/random"
       - "/etc/localtime:/etc/localtime:ro"
       - "keytabs:/etc/security/keytabs"
