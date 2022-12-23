@@ -21,20 +21,16 @@ services:
       - "krb5_conf_shared:/shared/krb5/"
     entrypoint: ["/bootstrap.sh"]
 
-  # mysql:
-  #   networks:
-  #     custom:
-  #       ipv4_address: 172.22.0.3
-  #   image: mysql:5.7
-  #   restart: always
-  #   hostname: mysql
-  #   domainname: docker.com
-  #   container_name: mysql
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: changeme123
-  #   volumes:
-  #     - "/etc/localtime:/etc/localtime:ro"
-  #     - mysql_data:/var/lib/mysql
+  mysql:
+    networks:
+      custom:
+    image: mysql:5.7
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: changeme123
+    volumes:
+      - "/etc/localtime:/etc/localtime:ro"
+      - mysql_data:/var/lib/mysql
 
   # hadoop-namenode:
   #   networks:

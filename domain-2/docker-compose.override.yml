@@ -6,3 +6,6 @@ services:
     environment:
       REALM: ${REALM_2}
       DOMAIN_REALM: kdc.${DOMAIN_2}
+
+  mysql:
+    hostname: mysql.${DOMAIN_2}
