@@ -8,8 +8,6 @@
 # HADOOP NAMENODE
 #
 
-set -e
-
 grep HADOOP_HOME /etc/profile
 if [ "$?" != 0 ];then
 	echo "export HADOOP_HOME=/opt/hadoop" >> /etc/profile
